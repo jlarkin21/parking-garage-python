@@ -26,7 +26,7 @@ class Garage:
                     regular_spaces.append(space)
 
         rejected_vehicles = list()
-        sv = sorted(vehicles, key=lambda x: x.permit.value, reverse=True)
+        #sv = sorted(vehicles, key=lambda x: x.permit.value, reverse=True)
         for vehicle in sv:
             if vehicle.permit == (Permit.DISABILITY.value | Permit.PREMIUM.value):
                 if handicap_spaces:
@@ -79,6 +79,7 @@ class Garage:
             rejected_vehicles.append(vehicle)
 
 
-        return list(set(rejected_vehicles).difference(vehicles))
+        #return list(set(rejected_vehicles).difference(vehicles))
+        return rejected_vehicles
 
 

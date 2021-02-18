@@ -27,7 +27,7 @@ class Garage:
 
         rejected_vehicles = list()
         #sv = sorted(vehicles, key=lambda x: x.permit.value, reverse=True)
-        for vehicle in sv:
+        for vehicle in vehicles:
             if vehicle.permit == (Permit.DISABILITY.value | Permit.PREMIUM.value):
                 if handicap_spaces:
                     handicap_spaces.popleft().vehicle = vehicle

@@ -10,80 +10,105 @@ class Garage:
         self.levels = levels or []
 
     def add_vehicles(self, vehicles: list = None) -> list:
-        handicap_spaces = deque()
+        # Load parking spaces into queues by type
+        disability_spaces = deque()
         premium_spaces = deque()
         compact_spaces = deque()
-        regular_spaces = deque()
+        general_spaces = deque()
         for level in self.levels:
             for space in level.spaces:
+                # Disability Permit
                 if space.required_permit == Permit.DISABILITY:
-                    handicap_spaces.append(space)
+                    disability_spaces.append(space)
+                # Premium Permit
                 elif space.required_permit == Permit.PREMIUM:
                     premium_spaces.append(space)
+                # Compact 
                 elif space.compact:
                     compact_spaces.append(space)
+                # General
                 else:
-                    regular_spaces.append(space)
+                    general_spaces.append(space)
 
-        premium_reservation_vehicles = deque()
-        special_premium = deque()
+        # Load vehicles into queues by type
+        priority_general_parking = deque()
+        priority_premium_parking = deque()
         compact_parking = deque()
         premium_parking = deque()
         general_parking = deque()
+
         rejected_vehicles = vehicles.copy()
+
         for vehicle in vehicles:
+
+            # Disability and Premium Permit
             dual = (vehicle.permit == (Permit.DISABILITY.value | Permit.PREMIUM.value))
             if dual:
-                if handicap_spaces:
-                    handicap_spaces.popleft().vehicle = vehicle
+                if disability_spaces:
+                    # Place vehicle into first available disability space
+                    disability_spaces.popleft().vehicle = vehicle
                     rejected_vehicles.remove(vehicle)
                     continue
                 elif premium_spaces:
-                    special_premium.append(vehicle)
-                    # premium_spaces.popleft().vehicle = vehicle
-                    # rejected_vehicles.remove(vehicle)
+                    # Add vehicle to priority premium queue
+                    priority_premium_parking.append(vehicle)
                     continue
                 elif (vehicle.vehicle_type == VehicleType.Compact) and compact_spaces:
+                    # Place vehicle in first available compact space
                     compact_spaces.popleft().vehicle = vehicle
                     rejected_vehicles.remove(vehicle)
                     continue
                 else:
-                    premium_reservation_vehicles.append(vehicle)
+                    # Add vehicle to priority general queue
+                    priority_general_parking.append(vehicle)
 
+            # Disability Permit
             if vehicle.permit == Permit.DISABILITY:
-                if handicap_spaces:
-                    handicap_spaces.popleft().vehicle = vehicle
+                if disability_spaces:
+                    # Place vehicle in first available disability space
+                    disability_spaces.popleft().vehicle = vehicle
                     rejected_vehicles.remove(vehicle)
                     continue
-                elif regular_spaces:
+                elif general_spaces:
+                    # Place vehicle in first available general space
                     general_parking.append(vehicle)
                     continue
-
+            
+            # Premium Permit
             if vehicle.permit == Permit.PREMIUM:
                 if premium_spaces:
+                    # Add vehicle to premium parking queue
                     premium_parking.append(vehicle)
 
-                if regular_spaces:
-                    premium_reservation_vehicles.append(vehicle)
+                if general_spaces:
+                    # Add vehicle to premium general queue
+                    priority_general_parking.append(vehicle)
 
+            # Compact
             if (vehicle.vehicle_type == VehicleType.Compact):
                 if compact_spaces:
+                    # Add vehicle to compact queue
                     compact_parking.append(vehicle)
-                if regular_spaces:
+                if general_spaces:
+                    # Add vehicle to general queue
                     general_parking.append(vehicle)
                 continue
-
-            if regular_spaces and (vehicle.permit != Permit.PREMIUM):
+            # Standard Vehicle
+            if general_spaces and (vehicle.permit != Permit.PREMIUM):
+                # Add vehicle to general queue
                 general_parking.append(vehicle)
 
-
-        premium_parking = special_premium + premium_parking
+        # Prioritize dual disability and premium permit vehicles
+        premium_parking = priority_premium_parking + premium_parking
         while premium_parking and premium_spaces:
+            # Place vehicles in first available premium spaces
             v = premium_parking.popleft()
             premium_spaces.popleft().vehicle = v
             rejected_vehicles.remove(v)
+
+            # Remove from any other queues
             try:
-                premium_reservation_vehicles.remove(v)
+                priority_general_parking.remove(v)
             except ValueError:
                 pass
             try:
@@ -96,11 +121,14 @@ class Garage:
                 pass
 
         while compact_parking and compact_spaces:
+            # Place vehicles in first available compact spaces
             v = compact_parking.popleft()
             compact_spaces.popleft().vehicle = v
             rejected_vehicles.remove(v)
+
+            # Remove from any other queues
             try:
-                premium_reservation_vehicles.remove(v)
+                priority_general_parking.remove(v)
             except ValueError:
                 pass
             try:
@@ -108,120 +136,12 @@ class Garage:
             except ValueError:
                 pass
 
-
-        general_parking = premium_reservation_vehicles + general_parking
-        while general_parking and regular_spaces:
+        # Prioritize premium permit vehicles in general parking
+        general_parking = priority_general_parking + general_parking
+        while general_parking and general_spaces:
+            # Place vehicles in first available general space
             v = general_parking.popleft()
-            regular_spaces.popleft().vehicle = v
+            general_spaces.popleft().vehicle = v
             rejected_vehicles.remove(v)
-
-        # dual_permit_vehicles = deque()
-        # disability_vehicles = deque()
-        # premium_vehicles = deque()
-        # compact_vehicles = deque()
-        # regular_vehicles = deque()
-        # for vehicle in vehicles:
-        #     dual = (vehicle.permit == (Permit.DISABILITY.value | Permit.PREMIUM.value))
-        #     if dual:
-        #         dual_permit_vehicles.append(vehicle)
-        #
-        #     if vehicle.permit == Permit.DISABILITY:
-        #         disability_vehicles.append(vehicle)
-        #
-        #     if vehicle.permit == Permit.PREMIUM:
-        #         premium_vehicles.append(vehicle)
-        #
-        #     if vehicle.vehicle_type == VehicleType.Compact:
-        #         compact_vehicles.append(vehicle)
-        #
-        #     if vehicle.permit == Permit.NONE and vehicle.vehicle_type != VehicleType.Compact:
-        #         regular_vehicles.append(vehicle)
-        #
-        # for level in self.levels:
-        #     for space in level.spaces:
-        #         selected_vehicle = Vehicle()
-        #
-        #         if space.required_permit == Permit.DISABILITY:
-        #             if dual_permit_vehicles:
-        #                 selected_vehicle = dual_permit_vehicles.popleft()
-        #                 space.vehicle = selected_vehicle
-        #                 vehicles.remove(selected_vehicle)
-        #                 try:
-        #                     compact_vehicles.remove(selected_vehicle)
-        #                 except ValueError:
-        #                     pass
-        #
-        #             elif disability_vehicles:
-        #                 selected_vehicle = disability_vehicles.popleft()
-        #                 space.vehicle = selected_vehicle
-        #                 vehicles.remove(selected_vehicle)
-        #                 try:
-        #                     compact_vehicles.remove(selected_vehicle)
-        #                 except ValueError:
-        #                     pass
-        #
-        #         elif space.required_permit == Permit.PREMIUM:
-        #             if dual_permit_vehicles and premium_vehicles:
-        #                 if vehicles.index(dual_permit_vehicles[0]) < vehicles.index(premium_vehicles[0]):
-        #                     selected_vehicle = dual_permit_vehicles.popleft()
-        #                     space.vehicle = selected_vehicle
-        #                     vehicles.remove(selected_vehicle)
-        #                     try:
-        #                         compact_vehicles.remove(selected_vehicle)
-        #                     except ValueError:
-        #                         pass
-        #                 else:
-        #                     selected_vehicle = premium_vehicles.popleft()
-        #                     space.vehicle = selected_vehicle
-        #                     vehicles.remove(selected_vehicle)
-        #                     try:
-        #                         compact_vehicles.remove(selected_vehicle)
-        #                     except ValueError:
-        #                         pass
-        #
-        #             elif dual_permit_vehicles:
-        #                 selected_vehicle = dual_permit_vehicles.popleft()
-        #                 space.vehicle = selected_vehicle
-        #                 vehicles.remove(selected_vehicle)
-        #                 try:
-        #                     compact_vehicles.remove(selected_vehicle)
-        #                 except ValueError:
-        #                     pass
-        #
-        #             elif premium_vehicles:
-        #                 selected_vehicle = premium_vehicles.popleft()
-        #                 space.vehicle = selected_vehicle
-        #                 vehicles.remove(selected_vehicle)
-        #                 try:
-        #                     compact_vehicles.remove(selected_vehicle)
-        #                 except ValueError:
-        #                     pass
-        #
-        #
-        #
-        #         elif space.compact:
-        #             if compact_vehicles:
-        #                 selected_vehicle = compact_vehicles.popleft()
-        #                 space.vehicle = selected_vehicle
-        #                 vehicles.remove(selected_vehicle)
-        #
-        #                 try:
-        #                     dual_permit_vehicles.remove(selected_vehicle)
-        #                 except ValueError:
-        #                     pass
-        #                 try:
-        #                     premium_vehicles.remove(selected_vehicle)
-        #                 except ValueError:
-        #                     pass
-        #                 try:
-        #                     disability_vehicles.remove(selected_vehicle)
-        #                 except ValueError:
-        #                     pass
-        #
-        #         else:
-        #             regular_spaces.append(space)
-        #
-        # while regular_spaces and vehicles:
-        #     regular_spaces.popleft().vehicle = vehicles.pop(0)
 
         return rejected_vehicles

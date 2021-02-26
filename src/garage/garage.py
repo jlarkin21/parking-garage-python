@@ -85,7 +85,7 @@ class Garage:
                     priority_general_parking.append(vehicle)
 
             # Compact
-            if (vehicle.vehicle_type == VehicleType.Compact):
+            if vehicle.vehicle_type == VehicleType.Compact:
                 if compact_spaces:
                     # Add vehicle to compact queue
                     compact_parking.append(vehicle)
